@@ -1,0 +1,111 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template CloudFormation para criar uma estrutura basica com EC2, S3 e RDS.",
+  "Parameters": {
+    "KeyName": {
+      "Description": "Nome da sua Key Pair existente",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Default": "minha-chave-ssh"
+    }
+  },
+  "Resources": {
+    "MeuBucketS3": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "meu-bucket-da-aplicacao-original-2026",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        }
+      }
+    },
+    "SecurityGroupEC2": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Permitir acesso SSH e HTTP para o EC2",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "MinhaInstanciaEC2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "t3.micro",
+        "ImageId": "ami-0c7217cdde317cfec",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "SecurityGroupEC2"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Servidor-Aplicacao"
+          }
+        ]
+      }
+    },
+    "MeuBancoRDS": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBName": "meubancodb",
+        "AllocatedStorage": "20",
+        "DBInstanceClass": "db.t3.micro",
+        "Engine": "mysql",
+        "EngineVersion": "8.0",
+        "MasterUsername": "admin",
+        "MasterUserPassword": "MudarSenhaForte123!",
+        "PubliclyAccessible": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Banco-Producao"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "EC2PublicIP": {
+      "Description": "IP Publico da instancia EC2",
+      "Value": {
+        "Fn::GetAtt": [
+          "MinhaInstanciaEC2",
+          "PublicIp"
+        ]
+      }
+    },
+    "S3BucketName": {
+      "Description": "Nome do bucket S3 criado",
+      "Value": {
+        "Ref": "MeuBucketS3"
+      }
+    },
+    "RDSEndpoint": {
+      "Description": "Endpoint de conexao do Banco de Dados",
+      "Value": {
+        "Fn::GetAtt": [
+          "MeuBancoRDS",
+          "Endpoint.Address"
+        ]
+      }
+    }
+  }
+}
